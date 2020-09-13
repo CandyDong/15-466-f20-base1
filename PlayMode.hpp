@@ -1,5 +1,6 @@
 #include "PPU466.hpp"
 #include "Mode.hpp"
+#include "load_save_png.hpp"
 
 #include <glm/glm.hpp>
 
@@ -32,4 +33,11 @@ struct PlayMode : Mode {
 	//----- drawing handled by PPU466 -----
 
 	PPU466 ppu;
+
+	struct color_palette_map {
+		uint8_t row;
+		uint8_t col;
+		std::vector<glm::u8vec4> unique_colors;
+		std::array<uint8_t, 8*8> color_index;
+	};
 };

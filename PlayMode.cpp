@@ -1,10 +1,12 @@
 #include "PlayMode.hpp"
+#include "Sprite.hpp"
 
 //for the GL_ERRORS() macro:
 #include "gl_errors.hpp"
 
 //for glm::value_ptr() :
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
 
 #include <random>
 
@@ -17,6 +19,32 @@ PlayMode::PlayMode() {
 	//   and check that script into your repository.
 
 	//Also, *don't* use these tiles in your game:
+	uint8_t num_palettes;
+	std::array<glm::u8vec4, 4> colors;
+	load_sprite_palette("assets/yellow_car_palette.txt", num_palettes, colors);
+	ppu.palette_table[7] = colors;
+
+	// ppu.tile_table[34].bit1 = {
+	// 	0b00000000,       
+	// 	0b00000000,      
+	// 	0b00000000,       
+	// 	0b00000000,       
+	// 	0b11111111,       
+	// 	0b11111111,       
+	// 	0b11111111,       
+	// 	0b11111111      
+	// };
+	// ppu.tile_table[34].bit0 = {
+	// 	0b10011000,
+	// 	0b01100001,
+	// 	0b10110100,
+	// 	0b10011010,
+	// 	0b11111111,
+	// 	0b01111111,
+	// 	0b00000000,
+	// 	0b00000000
+	// };
+	
 
 	{ //use tiles 0-16 as some weird dot pattern thing:
 		std::array< uint8_t, 8*8 > distance;
@@ -70,6 +98,51 @@ PlayMode::PlayMode() {
 		0b00000000,
 	};
 
+
+	glm::uvec2 size;
+	// load_sprite_tile("assets/yellow_car.png", ppu.palette_table[7], 
+    //                     tiles, size);
+	glm::uvec2 img_size = glm::uvec2(0); // size in pixels
+    std::vector< glm::u8vec4 > data; // pixel data
+
+    //actually load the background:
+    load_png("assets/yellow_car.png", &img_size, &data, LowerLeftOrigin);
+    printf("background size: %d, %d\n", img_size.x, img_size.y);
+    size = img_size/glm::uvec2(8,8);
+    printf("tile size: %d, %d\n", size.x, size.y);
+
+    for (int y = 0; y < size.y; y++) {
+        for (int x = 0; x < size.x; x++) {
+            PPU466::Tile tile;
+            uint8_t bit0 = 0;
+            uint8_t bit1 = 0;
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    glm::u8vec4 color = data[(y*8+i)*img_size.x + x*8+j];
+                    int index = find_color_index_in_palette(color, ppu.palette_table[7]);
+                    bit0 |= (index & 0b01) << j;
+                    bit1 |= ((index & 0b10) >> 1) << j;
+                }
+                tile.bit0[i] = bit0;
+                tile.bit1[i] = bit1;
+            }
+            ppu.tile_table[33+y*size.x+x] = tile;
+            std::cout << "tile: " + std::to_string(y) + ", " + std::to_string(x) + " => " + 
+                        std::to_string(y*size.x+x) << std::endl;
+            print_tile(tile);
+        }
+    }
+	// ppu.tile_table[33].bit0 = tiles[0].bit0;
+	// ppu.tile_table[33].bit1 = tiles[0].bit1;
+	// ppu.tile_table[34].bit0 = tiles[1].bit0;
+	// ppu.tile_table[34].bit1 = tiles[1].bit1;
+	// ppu.tile_table[35].bit0 = tiles[2].bit0;
+	// ppu.tile_table[35].bit1 = tiles[2].bit1;
+	// ppu.tile_table[36].bit0 = tiles[3].bit0;
+	// ppu.tile_table[36].bit1 = tiles[3].bit1;
+
+	print_tile(ppu.tile_table[34]);
+
 	//makes the outside of tiles 0-16 solid:
 	ppu.palette_table[0] = {
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
@@ -86,13 +159,13 @@ PlayMode::PlayMode() {
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 	};
 
-	//used for the player:
-	ppu.palette_table[7] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0xff, 0xff, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
+	// //used for the player:
+	// ppu.palette_table[7] = {
+	// 	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	// 	glm::u8vec4(0xff, 0xff, 0x00, 0xff),
+	// 	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	// 	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	// };
 
 	//used for the misc other sprites:
 	ppu.palette_table[6] = {
@@ -193,11 +266,27 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	//player sprite:
 	ppu.sprites[0].x = int32_t(player_at.x);
 	ppu.sprites[0].y = int32_t(player_at.y);
-	ppu.sprites[0].index = 32;
+	ppu.sprites[0].index = 33;
 	ppu.sprites[0].attributes = 7;
 
+	ppu.sprites[1].x = int32_t(player_at.x) + 8;
+	ppu.sprites[1].y = int32_t(player_at.y);
+	ppu.sprites[1].index = 34;
+	ppu.sprites[1].attributes = 7;
+
+	ppu.sprites[2].x = int32_t(player_at.x);
+	ppu.sprites[2].y = int32_t(player_at.y) + 8;
+	ppu.sprites[2].index = 35;
+	ppu.sprites[2].attributes = 7;
+
+	ppu.sprites[3].x = int32_t(player_at.x) + 8;
+	ppu.sprites[3].y = int32_t(player_at.y) + 8;
+	ppu.sprites[3].index = 36;
+	ppu.sprites[3].attributes = 7;
+
+
 	//some other misc sprites:
-	for (uint32_t i = 1; i < 63; ++i) {
+	for (uint32_t i = 4; i < 63; ++i) {
 		float amt = (i + 2.0f * background_fade) / 62.0f;
 		ppu.sprites[i].x = int32_t(0.5f * PPU466::ScreenWidth + std::cos( 2.0f * M_PI * amt * 5.0f + 0.01f * player_at.x) * 0.4f * PPU466::ScreenWidth);
 		ppu.sprites[i].y = int32_t(0.5f * PPU466::ScreenHeight + std::sin( 2.0f * M_PI * amt * 3.0f + 0.01f * player_at.y) * 0.4f * PPU466::ScreenWidth);
