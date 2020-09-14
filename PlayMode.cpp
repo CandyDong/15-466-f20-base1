@@ -167,6 +167,12 @@ void PlayMode::update(float elapsed) {
 	if (down.pressed) player_at.y -= PlayerSpeed * elapsed;
 	if (up.pressed) player_at.y += PlayerSpeed * elapsed;
 
+	static std::mt19937 mt;
+	for (int i = 0; i < num_opponents; i++) {
+		oppo_speeds[i].x -= PlayerSpeed * elapsed + (mt() / float(mt.max()));
+		// oppo_speeds[i].x -= PlayerSpeed * elapsed;
+	}
+
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
@@ -199,44 +205,39 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.background_position.y = int32_t(-0.5f * player_at.y);
 
 	//player sprite:
+	uint8_t sprite_count = 0;
 	for (int i = 0; i < PLAYER_TILE_END - PLAYER_TILE_START; i++) {
 		ppu.sprites[i].x = int32_t(player_at.x) + (i%4)*8;
 		ppu.sprites[i].y = int32_t(player_at.y) + (i>=4)*8;
 		ppu.sprites[i].index = i + PLAYER_TILE_START;
 		ppu.sprites[i].attributes = PLAYER_PALETTE;
-
 		// print_tile("assets/test_tile.txt", ppu.tile_table[i + PLAYER_TILE_START], i + PLAYER_TILE_START);
 		// std::cout << "index: " + std::to_string(i + PLAYER_TILE_START) + 
 		// 			"x offset: " + std::to_string((i%4)*8) + 
 		// 			"x offset: " + std::to_string((i/4)*8) << std::endl;
 	}
+	sprite_count +=8;
 
-
+	static std::mt19937 mt; //mersenne twister pseudo-random number generator
 	//some other misc sprites:
-	for (uint32_t i = 0; i < PLAYER_TILE_END - PLAYER_TILE_START; i++) {
-		ppu.sprites[i+8].x = 64 + (i%4)*8;
-		ppu.sprites[i+8].y = 64 + (i>=4)*8;
-		ppu.sprites[i+8].index = i + PLAYER_TILE_START;
-		ppu.sprites[i+8].attributes = RED_PALETTE;
-		// if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
+	for (int c = 0; c < num_opponents; c++) {
+		for (uint32_t i = 0; i < PLAYER_TILE_END - PLAYER_TILE_START; i++) {
+			ppu.sprites[sprite_count+i].x = oppo_speeds[c].x + (i%4)*8;
+			ppu.sprites[sprite_count+i].y = oppo_speeds[c].y  + (i>=4)*8;
+			ppu.sprites[sprite_count+i].index = i + PLAYER_TILE_START;
+			ppu.sprites[sprite_count+i].attributes = (c%2 == 0) ? RED_PALETTE : BLUE_PALETTE;
+		}
+		sprite_count += 8;
 	}
 
-	for (uint32_t i = 0; i < PLAYER_TILE_END - PLAYER_TILE_START; i++) {
-		ppu.sprites[i+16].x = 16 + (i%4)*8;
-		ppu.sprites[i+16].y = 16 + (i>=4)*8;
-		ppu.sprites[i+16].index = i + PLAYER_TILE_START;
-		ppu.sprites[i+16].attributes = BLUE_PALETTE;
-		// if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
-	}
-
-	for (uint32_t i = 24; i < 63; i++) {
-		float amt = (i + 2.0f * background_fade) / 62.0f;
-		ppu.sprites[i].x = int32_t(0.5f * PPU466::ScreenWidth + std::cos( 2.0f * M_PI * amt * 5.0f + 0.01f * player_at.x) * 0.4f * PPU466::ScreenWidth);
-		ppu.sprites[i].y = int32_t(0.5f * PPU466::ScreenHeight + std::sin( 2.0f * M_PI * amt * 3.0f + 0.01f * player_at.y) * 0.4f * PPU466::ScreenWidth);
-		ppu.sprites[i].index = 32;
-		ppu.sprites[i].attributes = 6;
-		if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
-	}
+	// for (uint32_t i = 24; i < 63; i++) {
+	// 	float amt = (i + 2.0f * background_fade) / 62.0f;
+	// 	ppu.sprites[i].x = int32_t(0.5f * PPU466::ScreenWidth + std::cos( 2.0f * M_PI * amt * 5.0f + 0.01f * player_at.x) * 0.4f * PPU466::ScreenWidth);
+	// 	ppu.sprites[i].y = int32_t(0.5f * PPU466::ScreenHeight + std::sin( 2.0f * M_PI * amt * 3.0f + 0.01f * player_at.y) * 0.4f * PPU466::ScreenWidth);
+	// 	ppu.sprites[i].index = 32;
+	// 	ppu.sprites[i].attributes = 6;
+	// 	if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
+	// }
 
 	//--- actually draw ---
 	ppu.draw(drawable_size);

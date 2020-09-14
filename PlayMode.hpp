@@ -30,6 +30,18 @@ struct PlayMode : Mode {
 	//player position:
 	glm::vec2 player_at = glm::vec2(0.0f);
 
+	//opponents
+	uint8_t num_opponents = 7;
+	std::array<glm::vec2, 7> oppo_speeds = {
+		glm::vec2(64.0f, 24.0f),
+		glm::vec2(128.0f, 24.0f),
+		glm::vec2(24.0f, 56.0f),
+		glm::vec2(500.0f, 240.0f),
+		glm::vec2(240.0f, 360.0f),
+		glm::vec2(250.0f, 128.0f),
+		glm::vec2(260.0f, 256.0f)
+	};
+
 	//----- drawing handled by PPU466 -----
 
 	PPU466 ppu;
