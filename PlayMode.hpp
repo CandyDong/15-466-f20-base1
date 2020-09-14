@@ -35,6 +35,9 @@ struct PlayMode : Mode {
 	PPU466 ppu;
 
 	uint8_t PLAYER_PALETTE = 7;
+	uint8_t RED_PALETTE = 4;
+	uint8_t BLUE_PALETTE = 5;
+
 	uint8_t PLAYER_TILE_START = 33;
 	uint8_t PLAYER_TILE_END; // exclusive
 };
