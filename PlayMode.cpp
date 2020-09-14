@@ -20,7 +20,7 @@ PlayMode::PlayMode() {
 
 	//Also, *don't* use these tiles in your game:
 	uint8_t num_palettes;
-	load_sprite_palette("assets/yellow_car_palette.txt", num_palettes, ppu.palette_table, PLAYER_PALETTE);
+	load_player_sprite_palette("assets/yellow_car_palette.txt", num_palettes, ppu.palette_table, PLAYER_PALETTE);
 	
 
 	{ //use tiles 0-16 as some weird dot pattern thing:
@@ -55,9 +55,11 @@ PlayMode::PlayMode() {
 
 	glm::uvec2 size;
 	// load player sprite tiles
-	load_sprite_tile("assets/yellow_car.png", ppu.palette_table[PLAYER_PALETTE], 
+	load_player_sprite_tile("assets/yellow_car.png", ppu.palette_table[PLAYER_PALETTE], 
                         ppu.tile_table, PLAYER_TILE_START, size);
 	PLAYER_TILE_END = PLAYER_TILE_START + size.x*size.y;
+	std::cout << "player tiles: " + std::to_string(PLAYER_TILE_START) + "-" +
+				std::to_string(PLAYER_TILE_END) << std::endl;
 
 	//makes the outside of tiles 0-16 solid:
 	ppu.palette_table[0] = {
@@ -196,15 +198,20 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	//player sprite:
 	for (int i = 0; i < PLAYER_TILE_END - PLAYER_TILE_START; i++) {
-		ppu.sprites[i].x = int32_t(player_at.x) + (i%2)*8;
-		ppu.sprites[i].y = int32_t(player_at.y) + (i/2)*8;
+		ppu.sprites[i].x = int32_t(player_at.x) + (i%4)*8;
+		ppu.sprites[i].y = int32_t(player_at.y) + (i>=4)*8;
 		ppu.sprites[i].index = i + PLAYER_TILE_START;
 		ppu.sprites[i].attributes = PLAYER_PALETTE;
+
+		// print_tile("assets/test_tile.txt", ppu.tile_table[i + PLAYER_TILE_START], i + PLAYER_TILE_START);
+		// std::cout << "index: " + std::to_string(i + PLAYER_TILE_START) + 
+		// 			"x offset: " + std::to_string((i%4)*8) + 
+		// 			"x offset: " + std::to_string((i/4)*8) << std::endl;
 	}
 
 
 	//some other misc sprites:
-	for (uint32_t i = 4; i < 63; ++i) {
+	for (uint32_t i = 8; i < 63; ++i) {
 		float amt = (i + 2.0f * background_fade) / 62.0f;
 		ppu.sprites[i].x = int32_t(0.5f * PPU466::ScreenWidth + std::cos( 2.0f * M_PI * amt * 5.0f + 0.01f * player_at.x) * 0.4f * PPU466::ScreenWidth);
 		ppu.sprites[i].y = int32_t(0.5f * PPU466::ScreenHeight + std::sin( 2.0f * M_PI * amt * 3.0f + 0.01f * player_at.y) * 0.4f * PPU466::ScreenWidth);
