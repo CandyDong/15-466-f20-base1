@@ -34,10 +34,7 @@ struct PlayMode : Mode {
 
 	PPU466 ppu;
 
-	struct color_palette_map {
-		uint8_t row;
-		uint8_t col;
-		std::vector<glm::u8vec4> unique_colors;
-		std::array<uint8_t, 8*8> color_index;
-	};
+	uint8_t PLAYER_PALETTE = 7;
+	uint8_t PLAYER_TILE_START = 33;
+	uint8_t PLAYER_TILE_END; // exclusive
 };

@@ -20,7 +20,7 @@ PlayMode::PlayMode() {
 
 	//Also, *don't* use these tiles in your game:
 	uint8_t num_palettes;
-	load_sprite_palette("assets/yellow_car_palette.txt", num_palettes, ppu.palette_table, 7);
+	load_sprite_palette("assets/yellow_car_palette.txt", num_palettes, ppu.palette_table, PLAYER_PALETTE);
 	
 
 	{ //use tiles 0-16 as some weird dot pattern thing:
@@ -53,6 +53,36 @@ PlayMode::PlayMode() {
 		}
 	}
 
+	glm::uvec2 size;
+	// load player sprite tiles
+	load_sprite_tile("assets/yellow_car.png", ppu.palette_table[PLAYER_PALETTE], 
+                        ppu.tile_table, PLAYER_TILE_START, size);
+	PLAYER_TILE_END = PLAYER_TILE_START + size.x*size.y;
+
+	//makes the outside of tiles 0-16 solid:
+	ppu.palette_table[0] = {
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	};
+
+	//makes the center of tiles 0-16 solid:
+	ppu.palette_table[1] = {
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	};
+
+	//used for the misc other sprites:
+	ppu.palette_table[6] = {
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+		glm::u8vec4(0x88, 0x88, 0xff, 0xff),
+		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	};
+
 	//use sprite 32 as a "player":
 	ppu.tile_table[32].bit0 = {
 		0b01111110,
@@ -75,42 +105,6 @@ PlayMode::PlayMode() {
 		0b00000000,
 	};
 
-
-	glm::uvec2 size;
-	load_sprite_tile("assets/yellow_car.png", ppu.palette_table[7], 
-                        ppu.tile_table, 33, size);
-
-	//makes the outside of tiles 0-16 solid:
-	ppu.palette_table[0] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
-
-	//makes the center of tiles 0-16 solid:
-	ppu.palette_table[1] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
-
-	// //used for the player:
-	// ppu.palette_table[7] = {
-	// 	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	// 	glm::u8vec4(0xff, 0xff, 0x00, 0xff),
-	// 	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	// 	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	// };
-
-	//used for the misc other sprites:
-	ppu.palette_table[6] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x88, 0x88, 0xff, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	};
 
 }
 
@@ -201,25 +195,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.background_position.y = int32_t(-0.5f * player_at.y);
 
 	//player sprite:
-	ppu.sprites[0].x = int32_t(player_at.x);
-	ppu.sprites[0].y = int32_t(player_at.y);
-	ppu.sprites[0].index = 33;
-	ppu.sprites[0].attributes = 7;
-
-	ppu.sprites[1].x = int32_t(player_at.x) + 8;
-	ppu.sprites[1].y = int32_t(player_at.y);
-	ppu.sprites[1].index = 34;
-	ppu.sprites[1].attributes = 7;
-
-	ppu.sprites[2].x = int32_t(player_at.x);
-	ppu.sprites[2].y = int32_t(player_at.y) + 8;
-	ppu.sprites[2].index = 35;
-	ppu.sprites[2].attributes = 7;
-
-	ppu.sprites[3].x = int32_t(player_at.x) + 8;
-	ppu.sprites[3].y = int32_t(player_at.y) + 8;
-	ppu.sprites[3].index = 36;
-	ppu.sprites[3].attributes = 7;
+	for (int i = 0; i < PLAYER_TILE_END - PLAYER_TILE_START; i++) {
+		ppu.sprites[i].x = int32_t(player_at.x) + (i%2)*8;
+		ppu.sprites[i].y = int32_t(player_at.y) + (i/2)*8;
+		ppu.sprites[i].index = i + PLAYER_TILE_START;
+		ppu.sprites[i].attributes = PLAYER_PALETTE;
+	}
 
 
 	//some other misc sprites:
