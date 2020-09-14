@@ -20,30 +20,7 @@ PlayMode::PlayMode() {
 
 	//Also, *don't* use these tiles in your game:
 	uint8_t num_palettes;
-	std::array<glm::u8vec4, 4> colors;
-	load_sprite_palette("assets/yellow_car_palette.txt", num_palettes, colors);
-	ppu.palette_table[7] = colors;
-
-	// ppu.tile_table[34].bit1 = {
-	// 	0b00000000,       
-	// 	0b00000000,      
-	// 	0b00000000,       
-	// 	0b00000000,       
-	// 	0b11111111,       
-	// 	0b11111111,       
-	// 	0b11111111,       
-	// 	0b11111111      
-	// };
-	// ppu.tile_table[34].bit0 = {
-	// 	0b10011000,
-	// 	0b01100001,
-	// 	0b10110100,
-	// 	0b10011010,
-	// 	0b11111111,
-	// 	0b01111111,
-	// 	0b00000000,
-	// 	0b00000000
-	// };
+	load_sprite_palette("assets/yellow_car_palette.txt", num_palettes, ppu.palette_table, 7);
 	
 
 	{ //use tiles 0-16 as some weird dot pattern thing:
@@ -100,48 +77,8 @@ PlayMode::PlayMode() {
 
 
 	glm::uvec2 size;
-	// load_sprite_tile("assets/yellow_car.png", ppu.palette_table[7], 
-    //                     tiles, size);
-	glm::uvec2 img_size = glm::uvec2(0); // size in pixels
-    std::vector< glm::u8vec4 > data; // pixel data
-
-    //actually load the background:
-    load_png("assets/yellow_car.png", &img_size, &data, LowerLeftOrigin);
-    printf("background size: %d, %d\n", img_size.x, img_size.y);
-    size = img_size/glm::uvec2(8,8);
-    printf("tile size: %d, %d\n", size.x, size.y);
-
-    for (int y = 0; y < size.y; y++) {
-        for (int x = 0; x < size.x; x++) {
-            PPU466::Tile tile;
-            uint8_t bit0 = 0;
-            uint8_t bit1 = 0;
-            for (int i = 0; i < 8; i++) {
-                for (int j = 0; j < 8; j++) {
-                    glm::u8vec4 color = data[(y*8+i)*img_size.x + x*8+j];
-                    int index = find_color_index_in_palette(color, ppu.palette_table[7]);
-                    bit0 |= (index & 0b01) << j;
-                    bit1 |= ((index & 0b10) >> 1) << j;
-                }
-                tile.bit0[i] = bit0;
-                tile.bit1[i] = bit1;
-            }
-            ppu.tile_table[33+y*size.x+x] = tile;
-            std::cout << "tile: " + std::to_string(y) + ", " + std::to_string(x) + " => " + 
-                        std::to_string(y*size.x+x) << std::endl;
-            print_tile(tile);
-        }
-    }
-	// ppu.tile_table[33].bit0 = tiles[0].bit0;
-	// ppu.tile_table[33].bit1 = tiles[0].bit1;
-	// ppu.tile_table[34].bit0 = tiles[1].bit0;
-	// ppu.tile_table[34].bit1 = tiles[1].bit1;
-	// ppu.tile_table[35].bit0 = tiles[2].bit0;
-	// ppu.tile_table[35].bit1 = tiles[2].bit1;
-	// ppu.tile_table[36].bit0 = tiles[3].bit0;
-	// ppu.tile_table[36].bit1 = tiles[3].bit1;
-
-	print_tile(ppu.tile_table[34]);
+	load_sprite_tile("assets/yellow_car.png", ppu.palette_table[7], 
+                        ppu.tile_table, 33, size);
 
 	//makes the outside of tiles 0-16 solid:
 	ppu.palette_table[0] = {

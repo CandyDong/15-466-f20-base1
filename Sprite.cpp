@@ -14,8 +14,11 @@
 #include <sstream>
 
 void parse_str_to_color(std::string color_str, glm::u8vec4 &color);
+void print_tile(std::string filename, PPU466::Tile tile, uint8_t index);
 
-void load_sprite_palette(std::string filename, uint8_t &num_palettes, std::array<glm::u8vec4, 4> &palette) {
+void load_sprite_palette(std::string filename, uint8_t &num_palettes, 
+                        std::array<PPU466::Palette, 8> &palette_table,
+                        uint8_t start_index) {
     
     std::ifstream infile(filename);
 
@@ -24,12 +27,12 @@ void load_sprite_palette(std::string filename, uint8_t &num_palettes, std::array
         std::cerr << "Cannot open the File : "<< filename <<std::endl;
         return;
     }
-    std::cout << filename << std::endl;
+    // std::cout << filename << std::endl;
     std::string num;
     // parse the first line which contains the number of palette needed for the sprite
     std::getline(infile, num);
     num_palettes = std::stoi(num);
-    std::cout << "number of palettes needed for " + filename + " :" + std::to_string(num_palettes) << std::endl;
+    // std::cout << "number of palettes needed for " + filename + " :" + std::to_string(num_palettes) << std::endl;
 
     std::string str;
     // Read the next line from File untill it reaches the end.
@@ -37,7 +40,7 @@ void load_sprite_palette(std::string filename, uint8_t &num_palettes, std::array
     while (std::getline(infile, str))
     {   
         if(str.size() > 0){
-            parse_str_to_color(str, palette[count]);
+            parse_str_to_color(str, palette_table[start_index][count]);
         }
         count++;
     }
@@ -46,7 +49,8 @@ void load_sprite_palette(std::string filename, uint8_t &num_palettes, std::array
 }
 
 void load_sprite_tile(std::string filename, PPU466::Palette palette, 
-                        std::array<PPU466::Tile, 4> tiles,
+                        std::array<PPU466::Tile, 16*16>& tile_table,
+                        uint8_t start_index,
                         glm::uvec2 &size) {
     glm::uvec2 img_size = glm::uvec2(0); // size in pixels
     std::vector< glm::u8vec4 > data; // pixel data
@@ -57,40 +61,51 @@ void load_sprite_tile(std::string filename, PPU466::Palette palette,
     size = img_size/glm::uvec2(8,8);
     printf("tile size: %d, %d\n", size.x, size.y);
 
+    std::ofstream outfile;
+	outfile.open("assets/colors_at_index.txt");
     for (int y = 0; y < size.y; y++) {
         for (int x = 0; x < size.x; x++) {
             PPU466::Tile tile;
-            uint8_t bit0 = 0;
-            uint8_t bit1 = 0;
             for (int i = 0; i < 8; i++) {
+                uint8_t bit0 = 0;
+                uint8_t bit1 = 0;
                 for (int j = 0; j < 8; j++) {
                     glm::u8vec4 color = data[(y*8+i)*img_size.x + x*8+j];
                     int index = find_color_index_in_palette(color, palette);
-                    std::cout << "tile: " + std::to_string(y) + ", " + std::to_string(x) + 
-                                 " " + std::to_string(i) + ", " + std::to_string(j) +
-                                 " index: " + std::to_string(index) + " color: " + glm::to_string(color) << std::endl;
                     bit0 |= (index & 0b01) << j;
                     bit1 |= ((index & 0b10) >> 1) << j;
+                    std::bitset<8> b0(bit0);
+                    std::bitset<8> b1(bit1);
+                    outfile << std::to_string(y*8+i) + ", " + std::to_string(x*8+j) +
+                                 " color: " + glm::to_string(color) + 
+                                 " tile=" + std::to_string(start_index+y*size.x+x) +
+                                 " row=" + std::to_string(i) + 
+                                 " col=" + std::to_string(j) +
+                                 " index=" + std::to_string(index) + " "
+                                 << b1 << " " << b0 << std::endl;
                 }
                 tile.bit0[i] = bit0;
                 tile.bit1[i] = bit1;
             }
-            tiles[y*size.x+x] = tile;
-            std::cout << "tile: " + std::to_string(y) + ", " + std::to_string(x) + " => " + 
-                        std::to_string(y*size.x+x) << std::endl;
-            print_tile(tile);
+            tile_table[start_index+y*size.x+x] = tile;
+            // print_tile("assets/test_tile.txt", tile, start_index+y*size.x+x);
         }
     }
-    printf("tiles.size() = %lu\n", tiles.size());
+    outfile.close();
 }
 
-void print_tile(PPU466::Tile tile) {
+void print_tile(std::string filename, PPU466::Tile tile,
+                uint8_t index) {
+    std::ofstream outfile;
+	outfile.open(filename, std::ofstream::out | std::ofstream::app);
+    outfile << "tile: "  +  std::to_string(index) << std::endl;
     for (int i = 0; i < 8; i++) {
         std::bitset<8> b0(tile.bit0[i]);
         std::bitset<8> b1(tile.bit1[i]);
-        std::cout << b1 << "       "  << b0 << std::endl;
+        outfile << b1 << "       "  << b0 << std::endl;
     }
-    std::cout << "\n\n" << std::endl;
+    outfile << "\n\n" << std::endl;
+    outfile.close();
 }
 
 void parse_str_to_color(std::string color_str, glm::u8vec4 &color) {
@@ -115,5 +130,6 @@ int find_color_index_in_palette(glm::u8vec4 color, PPU466::Palette palette) {
             return i;
         }
     }
-    return 0;
+    std::cout << "color " + glm::to_string(color) + " does not exist in palette" << std::endl;
+    return -1;
 }
