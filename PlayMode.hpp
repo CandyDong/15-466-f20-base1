@@ -33,13 +33,13 @@ struct PlayMode : Mode {
 	//opponents
 	uint8_t num_opponents = 7;
 	std::array<glm::vec2, 7> oppo_speeds = {
-		glm::vec2(64.0f, 24.0f),
-		glm::vec2(128.0f, 24.0f),
-		glm::vec2(24.0f, 56.0f),
-		glm::vec2(500.0f, 240.0f),
-		glm::vec2(240.0f, 360.0f),
-		glm::vec2(250.0f, 128.0f),
-		glm::vec2(260.0f, 256.0f)
+		glm::vec2(64.0f, 256.0f),
+		glm::vec2(128.0f, 100.0f),
+		glm::vec2(100.0f, 240.0f),
+		glm::vec2(128.0f, 128.0f),
+		glm::vec2(240.0f, 90.0f),
+		glm::vec2(225.0f, 20.0f),
+		glm::vec2(200.0f, 175.0f)
 	};
 
 	//----- drawing handled by PPU466 -----
@@ -47,9 +47,17 @@ struct PlayMode : Mode {
 	PPU466 ppu;
 
 	uint8_t PLAYER_PALETTE = 7;
-	uint8_t RED_PALETTE = 4;
+	uint8_t RED_PALETTE = 6;
 	uint8_t BLUE_PALETTE = 5;
+	uint8_t BACKGROUND_PALETTE = 4;
 
 	uint8_t PLAYER_TILE_START = 33;
 	uint8_t PLAYER_TILE_END; // exclusive
+
+	uint8_t BACKGROUND_TILE_START;
+	uint8_t BACKGROUND_TILE_END;
+	uint8_t BACKGROUND_TILE_GROUP_HEIGHT = 3*2;
+	uint8_t BACKGROUND_TILE_GROUP_WIDTH = 8*2;
+
+	std::array<uint8_t, 6> BACKGROUND_MAP =  {0, 8, 4, 20, 16, 12};
 };

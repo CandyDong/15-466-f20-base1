@@ -12,10 +12,19 @@
 #include <fstream>
 #include <bitset>
 #include <sstream>
+#include <string>
+#include <filesystem>
+
+namespace fs = std::__fs::filesystem;
 
 void parse_str_to_color(std::string color_str, glm::u8vec4 &color);
+bool endsWith(std::string const &fullString, std::string const &ending);
+void load_background_tile(std::string filename, PPU466::Palette palette, 
+                        std::array<PPU466::Tile, 16*16>& tile_table,
+                        uint8_t start_index,
+                        uint8_t &end_index);
 
-void load_player_sprite_palette(std::string filename, uint8_t &num_palettes, 
+void load_palette(std::string filename, uint8_t &num_palettes, 
                         std::array<PPU466::Palette, 8> &palette_table,
                         uint8_t start_index) {
     
@@ -56,9 +65,9 @@ void load_player_sprite_tile(std::string filename, PPU466::Palette palette,
 
     //actually load the background:
     load_png(filename, &img_size, &data, LowerLeftOrigin);
-    printf("background size: %d, %d\n", img_size.x, img_size.y);
+    // printf("background size: %d, %d\n", img_size.x, img_size.y);
     size = img_size/glm::uvec2(8,8)*glm::uvec2(2, 1);
-    printf("tile size: %d, %d\n", size.x, size.y);
+    // printf("tile size: %d, %d\n", size.x, size.y);
 
     // std::ofstream outfile;
 	// outfile.open("assets/colors_at_index_mirror.txt");
@@ -91,6 +100,77 @@ void load_player_sprite_tile(std::string filename, PPU466::Palette palette,
                     //              " tile=" + std::to_string(start_index+y*size.x+x) +
                     //              " index=" + std::to_string(index) + " "
                     //              << b1 << " " << b0 << std::endl;
+                }
+                tile.bit0[i] = bit0;
+                tile.bit1[i] = bit1;
+            }
+            tile_table[start_index+y*size.x+x] = tile;
+            // print_tile("assets/test_tile.txt", tile, start_index+y*size.x+x);
+        }
+    }
+    // outfile.close();
+}
+
+void load_background_tiles(std::string dirname, PPU466::Palette palette, 
+                        std::array<PPU466::Tile, 16*16>& tile_table,
+                        uint8_t start_index,
+                        uint8_t &end_index) {
+    uint8_t count = 0;
+    for (const auto & entry : fs::directory_iterator(dirname)) {
+        std::cout << entry.path() << std::endl;
+        if (endsWith(entry.path(), ".png")) {
+            uint8_t tmp_end;
+            load_background_tile(entry.path(), palette, tile_table, start_index + count, tmp_end);
+            count += tmp_end - (start_index+count);
+            // std::cout << std::to_string(count) << std::endl;
+        }
+    }
+    end_index = start_index + count;
+}
+
+bool endsWith(std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
+void load_background_tile(std::string filename, PPU466::Palette palette, 
+                        std::array<PPU466::Tile, 16*16>& tile_table,
+                        uint8_t start_index,
+                        uint8_t &end_index) {
+    glm::uvec2 img_size = glm::uvec2(0); // size in pixels
+    std::vector< glm::u8vec4 > data; // pixel data
+
+    //actually load the background:
+    load_png(filename, &img_size, &data, LowerLeftOrigin);
+    glm::uvec2 size = img_size/glm::uvec2(8,8);
+    end_index = start_index + size.x*size.y;
+
+    // std::ofstream outfile;
+    // outfile.open("assets/colors_at_index_background_" + std::to_string(start_index) + ".txt");
+    for (int y = 0; y < size.y; y++) {
+        for (int x = 0; x < size.x; x++) {
+            PPU466::Tile tile;
+            for (int i = 0; i < 8; i++) {
+                uint8_t bit0 = 0;
+                uint8_t bit1 = 0;
+                for (int j = 0; j < 8; j++) {
+                    glm::u8vec4 color = data[(y*8+i)*img_size.x + 8*x+j];
+                    int index = find_color_index_in_palette(color, palette);
+                    bit0 |= (index & 0b01) << j;
+                    bit1 |= ((index & 0b10) >> 1) << j;
+                    std::bitset<8> b0(tile.bit0[i]);
+                    std::bitset<8> b1(tile.bit1[i]);
+                    // outfile << std::to_string(8*x+j) + ", " + std::to_string(y*8+i) +
+                    //              " color: " + glm::to_string(color) + 
+                    //              " tile=" + std::to_string(start_index+y*size.x+x) +
+                    //              " index=" + std::to_string(index) + 
+                    //              " x=" + std::to_string(x) + 
+                    //              " y=" + std::to_string(y) + " "
+                    //              << b1 << " " << b0 << std::endl;
+                    
                 }
                 tile.bit0[i] = bit0;
                 tile.bit1[i] = bit1;

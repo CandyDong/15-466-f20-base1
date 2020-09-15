@@ -20,9 +20,10 @@ PlayMode::PlayMode() {
 
 	//Also, *don't* use these tiles in your game:
 	uint8_t num_palettes;
-	load_player_sprite_palette("assets/yellow_car_palette.txt", num_palettes, ppu.palette_table, PLAYER_PALETTE);
-	load_player_sprite_palette("assets/red_car_palette.txt", num_palettes, ppu.palette_table, RED_PALETTE);
-	load_player_sprite_palette("assets/blue_car_palette.txt", num_palettes, ppu.palette_table, BLUE_PALETTE);
+	load_palette("assets/yellow_car_palette.txt", num_palettes, ppu.palette_table, PLAYER_PALETTE);
+	load_palette("assets/red_car_palette.txt", num_palettes, ppu.palette_table, RED_PALETTE);
+	load_palette("assets/blue_car_palette.txt", num_palettes, ppu.palette_table, BLUE_PALETTE);
+	load_palette("assets/background_palette.txt", num_palettes, ppu.palette_table, BACKGROUND_PALETTE);
 	
 
 	{ //use tiles 0-16 as some weird dot pattern thing:
@@ -55,13 +56,20 @@ PlayMode::PlayMode() {
 		}
 	}
 
-	glm::uvec2 size;
+	glm::uvec2 sprite_tile_size;
 	// load player sprite tiles
 	load_player_sprite_tile("assets/yellow_car.png", ppu.palette_table[PLAYER_PALETTE], 
-                        ppu.tile_table, PLAYER_TILE_START, size);
-	PLAYER_TILE_END = PLAYER_TILE_START + size.x*size.y;
+                        ppu.tile_table, PLAYER_TILE_START, sprite_tile_size);
+	PLAYER_TILE_END = PLAYER_TILE_START + sprite_tile_size.x*sprite_tile_size.y;
 	std::cout << "player tiles: " + std::to_string(PLAYER_TILE_START) + "-" +
 				std::to_string(PLAYER_TILE_END) << std::endl;
+	
+	BACKGROUND_TILE_START = PLAYER_TILE_END;
+	// load player sprite tiles
+	load_background_tiles("assets/background_tiles", ppu.palette_table[BACKGROUND_PALETTE], 
+                        ppu.tile_table, BACKGROUND_TILE_START, BACKGROUND_TILE_END);
+	std::cout << "background tiles: " + std::to_string(BACKGROUND_TILE_START) + "-" +
+				std::to_string(BACKGROUND_TILE_END) << std::endl;
 
 	//makes the outside of tiles 0-16 solid:
 	ppu.palette_table[0] = {
@@ -78,37 +86,6 @@ PlayMode::PlayMode() {
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 	};
-
-	//used for the misc other sprites:
-	ppu.palette_table[6] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x88, 0x88, 0xff, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	};
-
-	//use sprite 32 as a "player":
-	ppu.tile_table[32].bit0 = {
-		0b01111110,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b01111110,
-	};
-	ppu.tile_table[32].bit1 = {
-		0b00000000,
-		0b00000000,
-		0b00011000,
-		0b00100100,
-		0b00000000,
-		0b00100100,
-		0b00000000,
-		0b00000000,
-	};
-
 
 }
 
@@ -162,15 +139,15 @@ void PlayMode::update(float elapsed) {
 	background_fade -= std::floor(background_fade);
 
 	constexpr float PlayerSpeed = 30.0f;
+	player_at.x += PlayerSpeed * elapsed;
 	if (left.pressed) player_at.x -= PlayerSpeed * elapsed;
-	if (right.pressed) player_at.x += PlayerSpeed * elapsed;
+	if (right.pressed) player_at.x += 2.0f * PlayerSpeed * elapsed;
 	if (down.pressed) player_at.y -= PlayerSpeed * elapsed;
 	if (up.pressed) player_at.y += PlayerSpeed * elapsed;
 
 	static std::mt19937 mt;
 	for (int i = 0; i < num_opponents; i++) {
-		oppo_speeds[i].x -= PlayerSpeed * elapsed + (mt() / float(mt.max()));
-		// oppo_speeds[i].x -= PlayerSpeed * elapsed;
+		oppo_speeds[i].x -=  PlayerSpeed * elapsed + (mt() / float(mt.max()));
 	}
 
 	//reset button press counters:
@@ -193,10 +170,34 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	//tilemap gets recomputed every frame as some weird plasma thing:
 	//NOTE: don't do this in your game! actually make a map or something :-)
-	for (uint32_t y = 0; y < PPU466::BackgroundHeight; ++y) {
-		for (uint32_t x = 0; x < PPU466::BackgroundWidth; ++x) {
-			//TODO: make weird plasma thing
-			ppu.background[x+PPU466::BackgroundWidth*y] = ((x+y)%16);
+	for (uint32_t y = 0; y < PPU466::BackgroundHeight; y += 2) {
+		for (uint32_t x = 0; x < PPU466::BackgroundWidth; x += 2) {
+			uint8_t row = y % BACKGROUND_TILE_GROUP_HEIGHT / 2;
+			uint8_t zebra = y / BACKGROUND_TILE_GROUP_HEIGHT;
+			uint8_t col = x % BACKGROUND_TILE_GROUP_WIDTH / 2;
+			uint8_t tile_index;
+			if (zebra % 2 == 0) {
+				if (col == 0) {
+					tile_index = BACKGROUND_TILE_START + BACKGROUND_MAP[2-row];
+				} else {
+					tile_index = BACKGROUND_TILE_START + BACKGROUND_MAP[5-row];
+				}
+			}
+			else {
+				tile_index = BACKGROUND_TILE_START + BACKGROUND_MAP[4];
+			}
+			
+			
+			// std::cout << "x: " + std::to_string(x) + 
+			// 			" y: " + std::to_string(y) + 
+			// 			" row: " + std::to_string(row) +  
+			// 			" col: " + std::to_string(col) + 
+			// 			" tile index: " + std::to_string(tile_index)
+			// 			<< std::endl;
+			
+			for (int c = 0; c < 4; c++) {
+				ppu.background[(x+c%2)+PPU466::BackgroundWidth*(y+c/2)] = (BACKGROUND_PALETTE << 8) | tile_index+c;
+			}
 		}
 	}
 
@@ -229,15 +230,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 		sprite_count += 8;
 	}
-
-	// for (uint32_t i = 24; i < 63; i++) {
-	// 	float amt = (i + 2.0f * background_fade) / 62.0f;
-	// 	ppu.sprites[i].x = int32_t(0.5f * PPU466::ScreenWidth + std::cos( 2.0f * M_PI * amt * 5.0f + 0.01f * player_at.x) * 0.4f * PPU466::ScreenWidth);
-	// 	ppu.sprites[i].y = int32_t(0.5f * PPU466::ScreenHeight + std::sin( 2.0f * M_PI * amt * 3.0f + 0.01f * player_at.y) * 0.4f * PPU466::ScreenWidth);
-	// 	ppu.sprites[i].index = 32;
-	// 	ppu.sprites[i].attributes = 6;
-	// 	if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
-	// }
 
 	//--- actually draw ---
 	ppu.draw(drawable_size);
