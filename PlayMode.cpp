@@ -140,14 +140,24 @@ void PlayMode::update(float elapsed) {
 
 	constexpr float PlayerSpeed = 30.0f;
 	player_at.x += PlayerSpeed * elapsed;
-	if (left.pressed) player_at.x -= PlayerSpeed * elapsed;
+	if (left.pressed) player_at.x -= 2 * PlayerSpeed * elapsed;
 	if (right.pressed) player_at.x += 2.0f * PlayerSpeed * elapsed;
-	if (down.pressed) player_at.y -= PlayerSpeed * elapsed;
-	if (up.pressed) player_at.y += PlayerSpeed * elapsed;
+	if (down.pressed) {
+		player_at.y -= PlayerSpeed * elapsed;
+		for (int i = 0; i < num_opponents; i++) {
+			oppo_speeds[i].y += PlayerSpeed * elapsed;
+		}
+	}
+	if (up.pressed) {
+		player_at.y += PlayerSpeed * elapsed;
+		for (int i = 0; i < num_opponents; i++) {
+			oppo_speeds[i].y -= PlayerSpeed * elapsed;
+		}
+	}
 
 	static std::mt19937 mt;
 	for (int i = 0; i < num_opponents; i++) {
-		oppo_speeds[i].x -=  PlayerSpeed * elapsed + (mt() / float(mt.max()));
+		oppo_speeds[i].x -=  PlayerSpeed * elapsed + 1.5f*(mt() / float(mt.max()));
 	}
 
 	//reset button press counters:
@@ -203,7 +213,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	//background scroll:
 	ppu.background_position.x = int32_t(-0.5f * player_at.x);
-	ppu.background_position.y = int32_t(-0.5f * player_at.y);
+	ppu.background_position.y = int32_t(-player_at.y);
 
 	//player sprite:
 	uint8_t sprite_count = 0;
@@ -224,7 +234,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	for (int c = 0; c < num_opponents; c++) {
 		for (uint32_t i = 0; i < PLAYER_TILE_END - PLAYER_TILE_START; i++) {
 			ppu.sprites[sprite_count+i].x = oppo_speeds[c].x + (i%4)*8;
-			ppu.sprites[sprite_count+i].y = oppo_speeds[c].y  + (i>=4)*8;
+			ppu.sprites[sprite_count+i].y = oppo_speeds[c].y + (i>=4)*8;
 			ppu.sprites[sprite_count+i].index = i + PLAYER_TILE_START;
 			ppu.sprites[sprite_count+i].attributes = (c%2 == 0) ? RED_PALETTE : BLUE_PALETTE;
 		}
