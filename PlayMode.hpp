@@ -17,6 +17,7 @@ struct PlayMode : Mode {
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
 	//----- game state -----
+	bool GAME_OVER = false;
 
 	//input tracking:
 	struct Button {
@@ -33,14 +34,23 @@ struct PlayMode : Mode {
 	//opponents
 	uint8_t num_opponents = 7;
 	std::array<glm::vec2, 7> oppo_speeds = {
-		glm::vec2(64.0f, 256.0f),
-		glm::vec2(128.0f, 100.0f),
-		glm::vec2(100.0f, 240.0f),
-		glm::vec2(128.0f, 128.0f),
-		glm::vec2(240.0f, 90.0f),
-		glm::vec2(225.0f, 20.0f),
+		glm::vec2(180.0f, 64.0f),
+		glm::vec2(128.0f, 150.0f),
+		glm::vec2(100.0f, 120.0f),
+		glm::vec2(128.0f, 60.0f),
+		glm::vec2(110.0f, 40.0f),
+		glm::vec2(190.0f, 10.0f),
 		glm::vec2(200.0f, 175.0f)
 	};
+	// std::array<glm::vec2, 7> oppo_speeds = {
+	// 	glm::vec2(225.0f, 20.0f),
+	// 	glm::vec2(225.0f, 20.0f),
+	// 	glm::vec2(225.0f, 20.0f),
+	// 	glm::vec2(225.0f, 20.0f),
+	// 	glm::vec2(225.0f, 20.0f),
+	// 	glm::vec2(225.0f, 20.0f),
+	// 	glm::vec2(225.0f, 20.0f)
+	// };
 
 	//----- drawing handled by PPU466 -----
 

@@ -131,12 +131,39 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	return false;
 }
 
+bool equal(float a, float b)
+{
+    return (fabs(a-b) < 1e-2);
+}
+
+float get_absolute (float speed, float screen) {
+
+	while (speed < 0.0f) {
+		if (speed > 0.0f && speed < screen) {
+			return speed;
+		}
+		speed += screen;
+	}
+	while (speed > 0.0f) {
+		if (speed > 0.0f && speed < screen) {
+			return speed;
+		}
+		speed -= screen;
+	}
+
+	return speed;
+}
+
 void PlayMode::update(float elapsed) {
 
 	//slowly rotates through [0,1):
 	// (will be used to set background color)
 	background_fade += elapsed / 10.0f;
 	background_fade -= std::floor(background_fade);
+
+	if (GAME_OVER) {
+		return;
+	}
 
 	constexpr float PlayerSpeed = 30.0f;
 	player_at.x += PlayerSpeed * elapsed;
@@ -165,6 +192,34 @@ void PlayMode::update(float elapsed) {
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+
+	//---- collision handling ----
+	auto collide = [this](glm::vec2 const &oppo) {
+		//compute area of overlap:
+		glm::vec2 o = glm::vec2(get_absolute(oppo.x, PPU466::ScreenWidth), 
+								get_absolute(oppo.y, PPU466::ScreenHeight));
+		glm::vec2 p = glm::vec2(get_absolute(player_at.x, PPU466::ScreenWidth), 
+								get_absolute(player_at.y, PPU466::ScreenHeight));
+		// printf("player: (%f, %f), oppo (%f, %f)\n", p.x, p.y, o.x, o.y);
+		glm::ivec2 min = glm::max(o, p);
+		glm::ivec2 max = glm::min(o + glm::vec2(10, 16), p + glm::vec2(24, 16));
+
+		//if no overlap, no collision:
+		if (min.x > max.x || min.y > max.y) return;
+		GAME_OVER = true;
+		printf("GAME OVER\n");
+	};
+
+	for (int i = 0; i < num_opponents; i++) {
+		// std::string msg = "player: (" + std::to_string(player_at.x) + ", " +  std::to_string(player_at.y) + 
+		// 		") oppo " + std::to_string(i) + ": (" + 
+		// 		std::to_string(oppo_speeds[i].x) + ", " +  
+		// 		std::to_string(oppo_speeds[i].y) + ")\n";
+		collide(oppo_speeds[i]);
+		if (GAME_OVER) {
+			return;
+		}
+	}
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
