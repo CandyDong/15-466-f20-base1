@@ -60,6 +60,7 @@ struct PlayMode : Mode {
 	uint8_t RED_PALETTE = 6;
 	uint8_t BLUE_PALETTE = 5;
 	uint8_t BACKGROUND_PALETTE = 4;
+	uint8_t GAME_OVER_PALETTE = 0;
 
 	uint8_t PLAYER_TILE_START = 33;
 	uint8_t PLAYER_TILE_END; // exclusive
@@ -68,6 +69,9 @@ struct PlayMode : Mode {
 	uint8_t BACKGROUND_TILE_END;
 	uint8_t BACKGROUND_TILE_GROUP_HEIGHT = 3*2;
 	uint8_t BACKGROUND_TILE_GROUP_WIDTH = 8*2;
+
+	uint8_t GAME_OVER_TILE_START;
+	uint8_t GAME_OVER_TILE_END;
 
 	std::array<uint8_t, 6> BACKGROUND_MAP =  {0, 8, 4, 20, 16, 12};
 };

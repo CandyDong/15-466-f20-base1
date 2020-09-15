@@ -26,6 +26,11 @@ void load_background_tiles(std::string dirname, PPU466::Palette palette,
                         uint8_t start_index,
                         uint8_t &end_index);
 
+void load_game_over_tiles(std::string filename,
+                        std::array<PPU466::Tile, 16*16>& tile_table,
+                        uint8_t start_index,
+                        uint8_t &end_index);
+
 int find_color_index_in_palette(glm::u8vec4 color, PPU466::Palette palette);
 
 void print_tile(std::string filename, PPU466::Tile tile, uint8_t index);

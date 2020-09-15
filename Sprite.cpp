@@ -117,7 +117,7 @@ void load_background_tiles(std::string dirname, PPU466::Palette palette,
                         uint8_t &end_index) {
     uint8_t count = 0;
     for (const auto & entry : fs::directory_iterator(dirname)) {
-        std::cout << entry.path() << std::endl;
+        // std::cout << entry.path() << std::endl;
         if (endsWith(entry.path(), ".png")) {
             uint8_t tmp_end;
             load_background_tile(entry.path(), palette, tile_table, start_index + count, tmp_end);
@@ -180,6 +180,41 @@ void load_background_tile(std::string filename, PPU466::Palette palette,
         }
     }
     // outfile.close();
+}
+
+void load_game_over_tiles(std::string filename, 
+                        std::array<PPU466::Tile, 16*16>& tile_table,
+                        uint8_t start_index,
+                        uint8_t &end_index) {
+    glm::uvec2 img_size = glm::uvec2(0); // size in pixels
+    std::vector< glm::u8vec4 > data; // pixel data
+
+    //actually load the background:
+    load_png(filename, &img_size, &data, LowerLeftOrigin);
+    glm::uvec2 size = img_size/glm::uvec2(8,8);
+    end_index = start_index + size.x*size.y;
+    printf("start_index: %d, end_index: %d, size.x: %d, size.y: %d", start_index, end_index, size.x, size.y);
+
+    // std::ofstream outfile;
+    // outfile.open("assets/colors_at_index_background_" + std::to_string(start_index) + ".txt");
+    for (int y = 0; y < size.y; y++) {
+        for (int x = 0; x < size.x; x++) {
+            PPU466::Tile tile;
+            for (int i = 0; i < 8; i++) {
+                uint8_t bit0 = 0;
+                for (int j = 0; j < 8; j++) {
+                    glm::u8vec4 color = data[(y*8+i)*img_size.x + 8*x+j];
+                    if (color == glm::u8vec4(0, 0, 0, 0)) {
+                        bit0 |= 1 << j;
+                    }
+                }
+                tile.bit0[i] = bit0;
+                tile.bit1[i] = 0;
+            }
+            tile_table[start_index+y*size.x+x] = tile;
+        }
+    }
+
 }
 
 void print_tile(std::string filename, PPU466::Tile tile,

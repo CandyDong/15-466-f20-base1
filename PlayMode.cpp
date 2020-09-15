@@ -24,59 +24,34 @@ PlayMode::PlayMode() {
 	load_palette("assets/red_car_palette.txt", num_palettes, ppu.palette_table, RED_PALETTE);
 	load_palette("assets/blue_car_palette.txt", num_palettes, ppu.palette_table, BLUE_PALETTE);
 	load_palette("assets/background_palette.txt", num_palettes, ppu.palette_table, BACKGROUND_PALETTE);
-	
-
-	{ //use tiles 0-16 as some weird dot pattern thing:
-		std::array< uint8_t, 8*8 > distance;
-		for (uint32_t y = 0; y < 8; ++y) {
-			for (uint32_t x = 0; x < 8; ++x) {
-				float d = glm::length(glm::vec2((x + 0.5f) - 4.0f, (y + 0.5f) - 4.0f));
-				d /= glm::length(glm::vec2(4.0f, 4.0f));
-				distance[x+8*y] = std::max(0,std::min(255,int32_t( 255.0f * d )));
-			}
-		}
-		for (uint32_t index = 0; index < 16; ++index) {
-			PPU466::Tile tile;
-			uint8_t t = (255 * index) / 16;
-			for (uint32_t y = 0; y < 8; ++y) {
-				uint8_t bit0 = 0;
-				uint8_t bit1 = 0;
-				for (uint32_t x = 0; x < 8; ++x) {
-					uint8_t d = distance[x+8*y];
-					if (d > t) {
-						bit0 |= (1 << x);
-					} else {
-						bit1 |= (1 << x);
-					}
-				}
-				tile.bit0[y] = bit0;
-				tile.bit1[y] = bit1;
-			}
-			ppu.tile_table[index] = tile;
-		}
-	}
 
 	glm::uvec2 sprite_tile_size;
 	// load player sprite tiles
 	load_player_sprite_tile("assets/yellow_car.png", ppu.palette_table[PLAYER_PALETTE], 
                         ppu.tile_table, PLAYER_TILE_START, sprite_tile_size);
 	PLAYER_TILE_END = PLAYER_TILE_START + sprite_tile_size.x*sprite_tile_size.y;
-	std::cout << "player tiles: " + std::to_string(PLAYER_TILE_START) + "-" +
-				std::to_string(PLAYER_TILE_END) << std::endl;
+	// std::cout << "player tiles: " + std::to_string(PLAYER_TILE_START) + "-" +
+	// 			std::to_string(PLAYER_TILE_END) << std::endl;
 	
 	BACKGROUND_TILE_START = PLAYER_TILE_END;
 	// load player sprite tiles
 	load_background_tiles("assets/background_tiles", ppu.palette_table[BACKGROUND_PALETTE], 
                         ppu.tile_table, BACKGROUND_TILE_START, BACKGROUND_TILE_END);
-	std::cout << "background tiles: " + std::to_string(BACKGROUND_TILE_START) + "-" +
-				std::to_string(BACKGROUND_TILE_END) << std::endl;
+	// std::cout << "background tiles: " + std::to_string(BACKGROUND_TILE_START) + "-" +
+	// 			std::to_string(BACKGROUND_TILE_END) << std::endl;
+	
+	GAME_OVER_TILE_START = BACKGROUND_TILE_END;
+	load_game_over_tiles("assets/game_over.png", 
+                        ppu.tile_table,
+                        GAME_OVER_TILE_START,
+                        GAME_OVER_TILE_END);
 
 	//makes the outside of tiles 0-16 solid:
-	ppu.palette_table[0] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	ppu.palette_table[GAME_OVER_PALETTE] = {
+		glm::u8vec4(0xff, 0xff, 0xff, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+		glm::u8vec4(0xff, 0xff, 0xff, 0xff),
+		glm::u8vec4(0xff, 0xff, 0xff, 0xff),
 	};
 
 	//makes the center of tiles 0-16 solid:
@@ -277,6 +252,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		ppu.sprites[i].y = int32_t(player_at.y) + (i>=4)*8;
 		ppu.sprites[i].index = i + PLAYER_TILE_START;
 		ppu.sprites[i].attributes = PLAYER_PALETTE;
+		// if (GAME_OVER) {
+		// 	ppu.sprites[i].attributes |= 0x80; //'behind' bit
+		// }
 		// print_tile("assets/test_tile.txt", ppu.tile_table[i + PLAYER_TILE_START], i + PLAYER_TILE_START);
 		// std::cout << "index: " + std::to_string(i + PLAYER_TILE_START) + 
 		// 			"x offset: " + std::to_string((i%4)*8) + 
@@ -292,8 +270,28 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			ppu.sprites[sprite_count+i].y = oppo_speeds[c].y + (i>=4)*8;
 			ppu.sprites[sprite_count+i].index = i + PLAYER_TILE_START;
 			ppu.sprites[sprite_count+i].attributes = (c%2 == 0) ? RED_PALETTE : BLUE_PALETTE;
+			// if (GAME_OVER) {
+			// 	ppu.sprites[sprite_count+i].attributes |= 0x80; //'behind' bit
+			// }
 		}
 		sprite_count += 8;
+	}
+
+	if (GAME_OVER) {
+		uint32_t mid_x = PPU466::ScreenWidth/2 - ppu.background_position.x;
+		uint32_t mid_y = PPU466::ScreenHeight/2 - ppu.background_position.y;
+		uint8_t mid_tile_x = mid_x / 8 - 12;
+		uint8_t mid_tile_y = mid_y / 8 - 2;
+		// printf("mid_x: %d, mid_y: %d, mid_tile_x: %d, mid_tile_y: %d", mid_x, mid_y, mid_tile_x, mid_tile_y);
+		// printf("background_position.x: %d, background_position.y: %d", ppu.background_position.x, ppu.background_position.y);
+		for (int i = 0; i < GAME_OVER_TILE_END - GAME_OVER_TILE_START; i++) {
+			// uint8_t x = i%24;
+			// uint8_t y = i/24;
+			uint8_t x = mid_tile_x + i%24;
+			uint8_t y = mid_tile_y + i/24;
+			// printf("drawing %d", i);
+			ppu.background[x+PPU466::BackgroundWidth*y] = (GAME_OVER_PALETTE << 8) | i + GAME_OVER_TILE_START;
+		}
 	}
 
 	//--- actually draw ---
