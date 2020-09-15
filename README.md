@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+# Don't Crash!!
 
-Author: (TODO: your name)
+Author: qingyid
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: 
 
 Screen Shot:
 
@@ -10,13 +10,19 @@ Screen Shot:
 
 How Your Asset Pipeline Works:
 
-(TODO: describe the steps in your asset pipeline, from source files to tiles/backgrounds/whatever you upload to the PPU466.)
+Asset files are in the 'assets/' directory.
+
+Assets are cropped and color compressed using python scripts before loaded into PPU466.
+
+The color compression algorithm ensures that for every 8x8 tile, only four distinct colors exists. For each sprite (32x16), only four distinct colors exist in the entire pixel space.
+
+Functions handling asset loading are defined in 'Sprite.hpp'.
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+Use the arrow keys to control your yellow car; don't let it crash into other cars.
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+Sources: (https://www.kenney.nl/assets/rpg-urban-pack)
 
 This game was built with [NEST](NEST.md).
 

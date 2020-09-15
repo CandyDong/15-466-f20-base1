@@ -106,13 +106,10 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	return false;
 }
 
-bool equal(float a, float b)
-{
-    return (fabs(a-b) < 1e-2);
-}
-
 float get_absolute (float speed, float screen) {
-
+	if (! (speed > screen || speed < 0.0f)) {
+		return speed;
+	}
 	while (speed < 0.0f) {
 		if (speed > 0.0f && speed < screen) {
 			return speed;
@@ -175,12 +172,14 @@ void PlayMode::update(float elapsed) {
 								get_absolute(oppo.y, PPU466::ScreenHeight));
 		glm::vec2 p = glm::vec2(get_absolute(player_at.x, PPU466::ScreenWidth), 
 								get_absolute(player_at.y, PPU466::ScreenHeight));
-		// printf("player: (%f, %f), oppo (%f, %f)\n", p.x, p.y, o.x, o.y);
+		
 		glm::ivec2 min = glm::max(o, p);
 		glm::ivec2 max = glm::min(o + glm::vec2(10, 16), p + glm::vec2(24, 16));
 
 		//if no overlap, no collision:
 		if (min.x > max.x || min.y > max.y) return;
+		printf("player: (%f, %f), oppo (%f, %f)\n", p.x, p.y, o.x, o.y);
+		
 		GAME_OVER = true;
 		printf("GAME OVER\n");
 	};
